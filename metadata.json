@@ -1,0 +1,6 @@
+{
+  "name": "IP Geolocation & Network Footprint Mapper",
+  "description": "A professional cybersecurity dashboard for tracking IP addresses, mappers, networks, and search history analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
