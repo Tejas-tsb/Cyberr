@@ -17,13 +17,20 @@ export function isValidIp(ip: string): boolean {
   return ipv4Regex.test(trimmed);
 }
 
+function formatCallingCode(code: any): string {
+  if (!code) return '+1';
+  const str = String(code).trim();
+  if (!str) return '+1';
+  return str.startsWith('+') ? str : `+${str}`;
+}
+
 function parseIpwhois(data: any): GeolocData {
   return {
     ip: data.ip,
     type: data.type || (data.ip.includes(':') ? 'IPv6' : 'IPv4'),
     country: data.country || 'Unknown',
     countryCode: data.country_code || 'US',
-    countryFlag: data.country_flag || `https://flagcdn.com/${(data.country_code || 'us').toLowerCase()}.svg`,
+    countryFlag: data.flag?.img || data.country_flag || `https://flagcdn.com/${(data.country_code || 'us').toLowerCase()}.svg`,
     city: data.city || 'Unknown',
     region: data.region || 'Unknown',
     timezone: data.timezone?.id || 'UTC',
@@ -35,7 +42,7 @@ function parseIpwhois(data: any): GeolocData {
     longitude: typeof data.longitude === 'number' ? data.longitude : parseFloat(data.longitude || '0'),
     currency: data.currency?.name || 'Unknown Currency',
     currencyCode: data.currency?.code || 'USD',
-    callingCode: data.country_phone || '+1',
+    callingCode: formatCallingCode(data.calling_code || data.flag?.phone || data.borders?.phone || data.country_phone),
   };
 }
 
@@ -57,7 +64,7 @@ function parseIpapi(data: any): GeolocData {
     longitude: typeof data.longitude === 'number' ? data.longitude : parseFloat(data.longitude || '0'),
     currency: data.currency_name || 'Dollar',
     currencyCode: data.currency || 'USD',
-    callingCode: data.country_calling_code || '+1',
+    callingCode: formatCallingCode(data.country_calling_code || data.country_phone || data.calling_code),
   };
 }
 
