@@ -1,6 +1,6 @@
 {
   "name": "IP Geolocation & Network Footprint Mapper",
-  "description": "A professional cybersecurity dashboard for tracking IP addresses, mappers, networks, and search history analytics.",
+  "description": "An advanced cybersecurity and network telemetry dashboard for IP geolocation, subnet CIDR analysis, DNS lookup, route latency, and threat assessment.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

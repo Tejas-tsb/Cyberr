@@ -7,15 +7,28 @@ interface InteractiveMapProps {
   city: string;
   country: string;
   ip: string;
+  isDark?: boolean;
 }
 
-export default function InteractiveMap({ latitude, longitude, city, country, ip }: InteractiveMapProps) {
+export default function InteractiveMap({
+  latitude,
+  longitude,
+  city,
+  country,
+  ip,
+  isDark = false,
+}: InteractiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
+
+    const tileUrl = isDark
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 
     // Initialize map if it doesn't exist
     if (!mapRef.current) {
@@ -25,15 +38,17 @@ export default function InteractiveMap({ latitude, longitude, city, country, ip 
         zoomControl: false,
       });
 
-      // CartoDB Dark Matter layer is beautiful for cybersecurity dark aesthetics
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      tileLayerRef.current = L.tileLayer(tileUrl, {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
-        maxZoom: 20
+        maxZoom: 20,
       }).addTo(mapRef.current);
 
-      // Add a customized zoom control in the bottom right
+      // Customized zoom control in bottom right
       L.control.zoom({ position: 'bottomright' }).addTo(mapRef.current);
+    } else if (tileLayerRef.current) {
+      tileLayerRef.current.setUrl(tileUrl);
     }
 
     const map = mapRef.current;
@@ -45,13 +60,12 @@ export default function InteractiveMap({ latitude, longitude, city, country, ip 
     if (markerRef.current) {
       markerRef.current.setLatLng([latitude, longitude]);
     } else {
-      // Glow pulse custom divIcon avoids any asset loading issues and matches the cybersecurity dashboard theme
       const pulseIcon = L.divIcon({
         className: 'custom-pulse-marker',
         html: `
           <div class="relative flex items-center justify-center" style="width: 32px; height: 32px;">
-            <span class="absolute inline-flex w-full h-full rounded-full bg-cyan-400 opacity-60 animate-ping" style="animation-duration: 2s;"></span>
-            <span class="relative inline-flex rounded-full h-4.5 w-4.5 bg-cyan-400 border-2 border-slate-900 shadow-lg shadow-cyan-500/50"></span>
+            <span class="absolute inline-flex w-full h-full rounded-full bg-sky-500 opacity-60 animate-ping" style="animation-duration: 2s;"></span>
+            <span class="relative inline-flex rounded-full h-4.5 w-4.5 bg-sky-600 border-2 border-white shadow-lg shadow-sky-500/50"></span>
           </div>
         `,
         iconSize: [32, 32],
@@ -61,22 +75,24 @@ export default function InteractiveMap({ latitude, longitude, city, country, ip 
       markerRef.current = L.marker([latitude, longitude], { icon: pulseIcon }).addTo(map);
     }
 
-    // Define interactive popup with custom stylings
-    markerRef.current.bindPopup(`
-      <div style="color: #0f172a; font-family: sans-serif; padding: 4px; min-width: 160px;">
-        <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: 700; color: #0ea5e9; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+    // Define interactive popup with crisp stylings
+    markerRef.current
+      .bindPopup(
+        `
+      <div style="color: #0f172a; font-family: sans-serif; padding: 4px; min-width: 170px;">
+        <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: 700; color: #0284c7; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
           🌐 Signal Node Anchor
         </h4>
-        <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #475569;">
-          <strong>Target IP:</strong> <code style="background-color: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; color: #0369a1;">${ip}</code><br/>
+        <p style="margin: 0; font-size: 11px; line-height: 1.6; color: #334155;">
+          <strong>Target IP:</strong> <code style="background-color: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; color: #0284c7; font-weight: 700;">${ip}</code><br/>
           <strong>Location:</strong> ${city}, ${country}<br/>
-          <strong>Latitude:</strong> ${latitude.toFixed(5)}<br/>
-          <strong>Longitude:</strong> ${longitude.toFixed(5)}
+          <strong>Coordinates:</strong> ${latitude.toFixed(4)}, ${longitude.toFixed(4)}
         </p>
       </div>
-    `).openPopup();
+    `
+      )
+      .openPopup();
 
-    // ResizeObserver dynamically adjusts Map sizing (avoids rendering bugs)
     const container = mapContainerRef.current;
     const resizeObserver = new ResizeObserver(() => {
       map.invalidateSize();
@@ -86,31 +102,31 @@ export default function InteractiveMap({ latitude, longitude, city, country, ip 
     return () => {
       resizeObserver.disconnect();
     };
-  }, [latitude, longitude, city, country, ip]);
+  }, [latitude, longitude, city, country, ip, isDark]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
         markerRef.current = null;
+        tileLayerRef.current = null;
       }
     };
   }, []);
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-slate-800 shadow-[0_0_30px_rgba(34,211,238,0.02)]">
+    <div className="relative w-full h-full min-h-[380px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm">
       <div ref={mapContainerRef} className="w-full h-full min-h-[380px] z-10" />
-      {/* Floating telemetry panel */}
-      <div className="absolute top-4 left-4 bg-slate-950/90 backdrop-blur-md border border-cyan-500/20 px-3 py-1.5 rounded-lg z-20 text-[10px] font-mono text-cyan-400 flex items-center gap-3 select-none shadow-lg">
+      {/* Floating telemetry HUD panel */}
+      <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border border-slate-200 dark:border-cyan-500/30 px-3 py-1.5 rounded-xl z-20 text-[10px] font-mono text-sky-700 dark:text-cyan-400 flex items-center gap-2.5 select-none shadow-md">
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 dark:bg-cyan-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-600 dark:bg-cyan-500"></span>
         </span>
-        <span className="tracking-wider">LAT: {latitude.toFixed(6)}</span>
-        <span className="text-slate-700">|</span>
-        <span className="tracking-wider">LNG: {longitude.toFixed(6)}</span>
+        <span className="font-bold tracking-wider">LAT: {latitude.toFixed(5)}</span>
+        <span className="text-slate-300 dark:text-slate-700">|</span>
+        <span className="font-bold tracking-wider">LNG: {longitude.toFixed(5)}</span>
       </div>
     </div>
   );
